@@ -19,7 +19,7 @@
         },
         {
             "name": "IME SPACE",
-            "title": "Tap: Enter, Hold: IME Switch",
+            "title": "Tap: Space, Hold: IME Switch",
             "shortName": "IME_S"
         }
     ]
