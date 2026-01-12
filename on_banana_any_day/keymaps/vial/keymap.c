@@ -56,7 +56,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (record->event.pressed) {
                 // キーを押した時: タイマー開始 & IME ON (かな)
                 ime_enter_timer = timer_read();
-                tap_code(KC_LNG1);
+                tap_code(KC_GRAVE);// IME を反転
             } else {
                 // キーを離した時: まず IME ON を解除
                 //tap_code(KC_LNG2);
@@ -65,6 +65,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 if (timer_elapsed(ime_enter_timer) < TAPPING_TERM) {
                     // 短押し: Space を送信
                     tap_code(KC_SPACE);
+                    tap_code(KC_GRAVE); // IMEを反転
                 } else {
                     // 長押し: IME OFF (英数)
                     tap_code(KC_LNG2);
