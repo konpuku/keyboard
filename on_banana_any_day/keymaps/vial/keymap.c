@@ -40,10 +40,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 ime_enter_timer = timer_read();
                 tap_code(KC_LNG1);
             } else {
-                // キーを離した瞬間:
-                // まず押しっぱなしだった IME ON を解除
-                tap_code(KC_LNG2);
-
+        
                 // 押していた時間をチェック
                 if (timer_elapsed(ime_enter_timer) < TAPPING_TERM) {
                     // 短い (タップ): Enter を送信
@@ -62,11 +59,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 tap_code(KC_LNG1);
             } else {
                 // キーを離した時: まず IME ON を解除
-                tap_code(KC_LNG2);
+                //tap_code(KC_LNG2);
                 
                 // 押していた時間を判定
                 if (timer_elapsed(ime_enter_timer) < TAPPING_TERM) {
-                    // 短押し: Enter
+                    // 短押し: Space を送信
                     tap_code(KC_SPACE);
                 } else {
                     // 長押し: IME OFF (英数)
