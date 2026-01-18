@@ -24,7 +24,7 @@ jobs:
     - name: Checkout User Repository
       uses: actions/checkout@v4
       with:
-        path: my_keyboards
+        path: keyboard
 
     - name: Checkout Vial-QMK
       uses: actions/checkout@v4
