@@ -8,17 +8,16 @@ on:
       - '**.mk'
       - '**.json'
       - '.github/workflows/**'
-  workflow_dispatch:  # 手動実行用
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: qmkfm/qmk_cli:latest # QMK公式のビルド環境コンテナを使用
+    container: qmkfm/qmk_cli:latest
 
     strategy:
       fail-fast: false
       matrix:
-        # ここにキーボードのディレクトリ名をかく
         keyboard: [on_banana_any_day]
 
     steps:
@@ -31,20 +30,31 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: vial-kb/vial-qmk
-        ref: vial  # Vial用のブランチを指定
+        ref: vial
         submodules: recursive
         path: qmk_firmware
 
     - name: Copy Keyboard Directory
       run: |
-        # 自分のリポジトリのキーボードフォルダをQMKのkeyboards配下にコピー
-        # 構造: my_keyboards/{キーボード名} -> qmk_firmware/keyboards/{キーボード名}
-        cp -r my_keyboards/${{ matrix.keyboard }} qmk_firmware/keyboards/
+        # 【修正点】コピー元のパスに 'keyboard/' を追加しました
+        # ディレクトリが存在するか確認してからコピー
+        if [ -d "my_keyboards/keyboard/${{ matrix.keyboard }}" ]; then
+          cp -r my_keyboards/keyboard/${{ matrix.keyboard }} qmk_firmware/keyboards/
+        else
+          echo "Error: Directory my_keyboards/keyboard/${{ matrix.keyboard }} not found!"
+          ls -R my_keyboards
+          exit 1
+        fi
+
+    # デバッグ用：正しく配置されたか確認
+    - name: Debug Directory Structure
+      run: |
+        ls -F qmk_firmware/keyboards/${{ matrix.keyboard }}/ || true
 
     - name: Build Firmware
       working-directory: qmk_firmware
       run: |
-        # ビルド実行 (keymapは vial 固定)
+        # ビルド実行
         qmk compile -kb ${{ matrix.keyboard }} -km vial
 
     - name: Archive Artifacts
