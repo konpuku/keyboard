@@ -16,3 +16,5 @@ RGBLIGHT_ENABLE = no        # Enable keyboard RGB underglow
 AUDIO_ENABLE = no           # Audio output
 SPACE_CADET_ENABLE = no
 MUSIC_ENABLE = no
+
+MCU = RP2040          # RP2040
