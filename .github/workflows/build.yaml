@@ -1,0 +1,57 @@
+name: Build Vial Firmware
+
+on:
+  push:
+    paths:
+      - '**.c'
+      - '**.h'
+      - '**.mk'
+      - '**.json'
+      - '.github/workflows/**'
+  workflow_dispatch:  # 手動実行用
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: qmkfm/qmk_cli:latest # QMK公式のビルド環境コンテナを使用
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # ここにキーボードのディレクトリ名をかく
+        keyboard: [on_banana_any_day]
+
+    steps:
+    - name: Checkout User Repository
+      uses: actions/checkout@v4
+      with:
+        path: my_keyboards
+
+    - name: Checkout Vial-QMK
+      uses: actions/checkout@v4
+      with:
+        repository: vial-kb/vial-qmk
+        ref: vial  # Vial用のブランチを指定
+        submodules: recursive
+        path: qmk_firmware
+
+    - name: Copy Keyboard Directory
+      run: |
+        # 自分のリポジトリのキーボードフォルダをQMKのkeyboards配下にコピー
+        # 構造: my_keyboards/{キーボード名} -> qmk_firmware/keyboards/{キーボード名}
+        cp -r my_keyboards/${{ matrix.keyboard }} qmk_firmware/keyboards/
+
+    - name: Build Firmware
+      working-directory: qmk_firmware
+      run: |
+        # ビルド実行 (keymapは vial 固定)
+        qmk compile -kb ${{ matrix.keyboard }} -km vial
+
+    - name: Archive Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: vial_firmware_${{ matrix.keyboard }}
+        path: |
+          qmk_firmware/*.hex
+          qmk_firmware/*.uf2
+          qmk_firmware/*.bin
