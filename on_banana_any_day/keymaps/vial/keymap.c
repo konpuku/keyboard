@@ -6,10 +6,11 @@ enum custom_keycodes {
     IME_SPACE,
 };
 
-// 2. タイマー用の変数
-static uint16_t ime_enter_timer = 0;
+/// --- SandS方式用の変数定義 ---
+static bool ime_space_pressed = false;     // スペースキーが押されているか
+static bool ime_space_active = false;      // ホールド中に他のキーが打たれたか（IMEモード発動中か）
+static uint16_t ime_timer = 0;       // タップ判定用タイマー
 
-// タップかホールドかの判定時間 (ミリ秒)
 #ifndef TAPPING_TERM
 #define TAPPING_TERM 200
 #endif
@@ -37,12 +38,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (record->event.pressed) {
                 // キーを押した瞬間:
                 // タイマーを開始し、IME ON (かな) を送信
-                ime_enter_timer = timer_read();
+                ime_timer = timer_read();
                 tap_code(KC_LNG1);
             } else {
         
                 // 押していた時間をチェック
-                if (timer_elapsed(ime_enter_timer) < TAPPING_TERM) {
+                if (timer_elapsed(ime_timer) < TAPPING_TERM) {
                     // 短い (タップ): Enter を送信
                     tap_code(KC_ENTER);
                 } else {
@@ -52,26 +53,42 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 }
             }
             return false; // 独自の処理をしたので、QMK標準の処理はスキップ
+        // --- IME Space (SandS Like) ---
         case IME_SPACE:
             if (record->event.pressed) {
-                // キーを押した時: タイマー開始 & IME ON (かな)
-                ime_enter_timer = timer_read();
-                tap_code(KC_GRAVE);// IME を反転
+                // 押下時: フラグを立ててタイマー開始。まだ何もしない。
+                ime_space_pressed = true;
+                ime_space_active = false;
+                ime_timer = timer_read();
             } else {
-                // キーを離した時: まず IME ON を解除
-                //tap_code(KC_LNG2);
-                
-                // 押していた時間を判定
-                if (timer_elapsed(ime_enter_timer) < TAPPING_TERM) {
-                    // 短押し: Space を送信
-                    tap_code(KC_SPACE);
-                    tap_code(KC_GRAVE); // IMEを反転
+                // 離脱時:
+                if (ime_space_active) {
+                    // ホールド中に他の文字を打っていた場合 -> IME OFF (英数) に戻す
+                    // ※Windowsでは「英数」キーを押すと未確定文字も確定されるため、Enterは不要な場合が多いですが、
+                    // 確実に確定させたい場合は tap_code(KC_ENT) を先頭に追加してください。
+                    tap_code(KC_LNG2); // IME OFF
                 } else {
-                    // 長押し: IME OFF (英数)
-                    tap_code(KC_LNG2);
+                    // 他の文字を打たずに離した場合 -> 単なるスペース
+                    tap_code(KC_SPC);
+                }
+                
+                // 状態リセット
+                ime_space_pressed = false;
+                ime_space_active = false;
+            }
+            return false; // QMK標準の処理は行わない
+
+        // --- 他の全てのキー入力の監視 ---
+        default:
+            // IME_SPACEを押しながら、他のキーが押された場合
+            if (ime_space_pressed && record->event.pressed) {
+                if (!ime_space_active) {
+                    // 初回の1回だけ IME ON (かな) を送信
+                    tap_code(KC_LNG1); 
+                    ime_space_active = true;
                 }
             }
-            return false; // QMKの標準処理をスキップ
+            break; // 重要: ここで return false してはいけない（他のキー入力を阻害しないため）
     }
     return true;
 }
