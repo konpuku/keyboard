@@ -38,10 +38,10 @@ jobs:
       run: |
         # 【修正点】コピー元のパスに 'keyboard/' を追加しました
         # ディレクトリが存在するか確認してからコピー
-        if [ -d "my_keyboards/keyboard/${{ matrix.keyboard }}" ]; then
-          cp -r my_keyboards/keyboard/${{ matrix.keyboard }} qmk_firmware/keyboards/
+        if [ -d "keyboard/${{ matrix.keyboard }}" ]; then
+          cp -r keyboard/${{ matrix.keyboard }} qmk_firmware/keyboards/
         else
-          echo "Error: Directory my_keyboards/keyboard/${{ matrix.keyboard }} not found!"
+          echo "Error: Directory keyboard/${{ matrix.keyboard }} not found!"
           ls -R my_keyboards
           exit 1
         fi
