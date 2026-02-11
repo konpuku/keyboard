@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        keyboard: [on_banana_any_day]
+        keyboard: [bancouver40]
 
     steps:
     - name: Checkout User Repository
