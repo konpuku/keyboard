@@ -6,8 +6,10 @@ enum custom_keycodes {
     IME_SPACE,88
 };
 
-// 2. タイマー変数
-static uint16_t ime_enter_timer = 0;
+/// --- SandS方式用の変数定義 ---
+static bool ime_space_pressed = false;     // スペースキーが押されているか
+static bool ime_space_active = false;      // ホールド中に他のキーが打たれたか（IMEモード発動中か）
+static uint16_t ime_timer = 0;       // タップ判定用タイマー
 
 // 3. タップ判定時間
 #ifndef TAPPING_TERM
