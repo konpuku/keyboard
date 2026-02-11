@@ -3,7 +3,7 @@
 // 1. カスタムキーコードの定義
 enum custom_keycodes {
     IME_ENTER = QK_KB_0,
-    IME_SPACE,88
+    IME_SPACE,
 };
 
 /// --- SandS方式用の変数定義 ---
