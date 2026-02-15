@@ -8,10 +8,21 @@ on:
       - '**.mk'
       - '**.json'
       - '.github/workflows/**'
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       keyboard:
         description: 'Keyboard name to build (empty = all)'
+        required: false
+        default: ''
+      create_release:
+        description: 'Create a GitHub Release with built firmware'
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: 'Release tag name (e.g. v1.0.0). Auto-generated if empty.'
         required: false
         default: ''
 
@@ -45,8 +56,11 @@ jobs:
             all_keyboards+=("$kb")
           done
 
+          # タグ push またはリリース指定 → 全キーボードをビルド
+          if [[ "${{ github.ref_type }}" == "tag" ]] || [[ "${{ github.event.inputs.create_release }}" == "true" ]]; then
+            keyboards=("${all_keyboards[@]}")
           # push イベント: 差分から変更キーボードを検出
-          if [[ "${{ github.event_name }}" == "push" ]]; then
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
             changed_keyboards=()
 
             # ワークフロー自体が変わった場合は全キーボードをビルド
@@ -140,16 +154,34 @@ jobs:
             qmk_firmware/*.bin
 
   # -------------------------------------------------------
-  # 3) タグ push 時にリリースを作成しファームウェアを添付
+  # 3) リリースを作成しファームウェアを添付
+  #    - タグ push 時に自動実行
+  #    - workflow_dispatch で create_release=true 時に実行
   # -------------------------------------------------------
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.create_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tag_name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${{ github.event.inputs.release_tag }}" ]]; then
+            echo "tag_name=${{ github.event.inputs.release_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            # 自動生成: v + 日付 + short SHA
+            tag_name="v$(date +'%Y%m%d')-${GITHUB_SHA::7}"
+            echo "tag_name=${tag_name}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download all firmware artifacts
         uses: actions/download-artifact@v4
         with:
@@ -160,10 +192,20 @@ jobs:
         run: |
           mkdir -p release
           find firmware -type f \( -name '*.hex' -o -name '*.uf2' -o -name '*.bin' \) -exec cp {} release/ \;
-          ls -la release/
+          echo "## Firmware files" > release_body.md
+          echo "" >> release_body.md
+          for f in release/*; do
+            name=$(basename "$f")
+            size=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f")
+            echo "- **${name}** ($(( size / 1024 )) KB)" >> release_body.md
+          done
+          cat release_body.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          name: "Firmware ${{ steps.tag.outputs.tag_name }}"
+          body_path: release_body.md
           generate_release_notes: true
           files: release/*
