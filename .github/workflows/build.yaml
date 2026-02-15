@@ -9,59 +9,161 @@ on:
       - '**.json'
       - '.github/workflows/**'
   workflow_dispatch:
+    inputs:
+      keyboard:
+        description: 'Keyboard name to build (empty = all)'
+        required: false
+        default: ''
 
 jobs:
+  # -------------------------------------------------------
+  # 1) 変更があったキーボードを検出する
+  # -------------------------------------------------------
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      keyboards: ${{ steps.set-matrix.outputs.keyboards }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed keyboards
+        id: set-matrix
+        run: |
+          # workflow_dispatch で keyboard が指定されていたらそれだけビルド
+          if [[ -n "${{ github.event.inputs.keyboard }}" ]]; then
+            echo "keyboards=[\"${{ github.event.inputs.keyboard }}\"]" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # keymaps/vial を持つディレクトリ = キーボード一覧
+          all_keyboards=()
+          for dir in */keymaps/vial; do
+            kb="$(echo "$dir" | cut -d/ -f1)"
+            all_keyboards+=("$kb")
+          done
+
+          # push イベント: 差分から変更キーボードを検出
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            changed_keyboards=()
+
+            # ワークフロー自体が変わった場合は全キーボードをビルド
+            workflow_changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- .github/workflows/ | wc -l)
+            if [[ "$workflow_changed" -gt 0 ]]; then
+              changed_keyboards=("${all_keyboards[@]}")
+            else
+              # 変更ファイルからキーボード名を抽出
+              for file in $(git diff --name-only ${{ github.event.before }} ${{ github.sha }}); do
+                kb="$(echo "$file" | cut -d/ -f1)"
+                for known in "${all_keyboards[@]}"; do
+                  if [[ "$kb" == "$known" ]]; then
+                    changed_keyboards+=("$kb")
+                    break
+                  fi
+                done
+              done
+            fi
+
+            # 重複を除去
+            keyboards=($(printf '%s\n' "${changed_keyboards[@]}" | sort -u))
+          else
+            # workflow_dispatch (keyboard 未指定) → 全キーボード
+            keyboards=("${all_keyboards[@]}")
+          fi
+
+          # 結果が空なら空配列を返してビルドをスキップ
+          if [[ ${#keyboards[@]} -eq 0 ]]; then
+            echo "keyboards=[]" >> "$GITHUB_OUTPUT"
+          else
+            json=$(printf '%s\n' "${keyboards[@]}" | jq -R . | jq -sc .)
+            echo "keyboards=${json}" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "Detected keyboards: ${keyboards[*]:-none}"
+
+  # -------------------------------------------------------
+  # 2) 検出されたキーボードごとにビルド
+  # -------------------------------------------------------
   build:
+    needs: detect
+    if: needs.detect.outputs.keyboards != '[]'
     runs-on: ubuntu-latest
     container: qmkfm/qmk_cli:latest
 
     strategy:
       fail-fast: false
       matrix:
-        keyboard: [bancouver40]
+        keyboard: ${{ fromJson(needs.detect.outputs.keyboards) }}
 
     steps:
-    - name: Checkout User Repository
-      uses: actions/checkout@v4
-      with:
-        path: keyboard
+      - name: Checkout User Repository
+        uses: actions/checkout@v4
+        with:
+          path: keyboard
 
-    - name: Checkout Vial-QMK
-      uses: actions/checkout@v4
-      with:
-        repository: vial-kb/vial-qmk
-        ref: vial
-        submodules: recursive
-        path: qmk_firmware
+      - name: Checkout Vial-QMK
+        uses: actions/checkout@v4
+        with:
+          repository: vial-kb/vial-qmk
+          ref: vial
+          submodules: recursive
+          path: qmk_firmware
 
-    - name: Copy Keyboard Directory
-      run: |
-        # 【修正点】コピー元のパスに 'keyboard/' を追加しました
-        # ディレクトリが存在するか確認してからコピー
-        if [ -d "keyboard/${{ matrix.keyboard }}" ]; then
-          cp -r keyboard/${{ matrix.keyboard }} qmk_firmware/keyboards/
-        else
-          echo "Error: Directory keyboard/${{ matrix.keyboard }} not found!"
-          ls -R my_keyboards
-          exit 1
-        fi
+      - name: Copy Keyboard Directory
+        run: |
+          if [ -d "keyboard/${{ matrix.keyboard }}" ]; then
+            cp -r keyboard/${{ matrix.keyboard }} qmk_firmware/keyboards/
+          else
+            echo "Error: Directory keyboard/${{ matrix.keyboard }} not found!"
+            ls keyboard/
+            exit 1
+          fi
 
-    # デバッグ用：正しく配置されたか確認
-    - name: Debug Directory Structure
-      run: |
-        ls -F qmk_firmware/keyboards/${{ matrix.keyboard }}/ || true
+      - name: Debug Directory Structure
+        run: |
+          ls -F qmk_firmware/keyboards/${{ matrix.keyboard }}/ || true
 
-    - name: Build Firmware
-      working-directory: qmk_firmware
-      run: |
-        # ビルド実行
-        qmk compile -kb ${{ matrix.keyboard }} -km vial
+      - name: Build Firmware
+        working-directory: qmk_firmware
+        run: |
+          qmk compile -kb ${{ matrix.keyboard }} -km vial
 
-    - name: Archive Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: vial_firmware_${{ matrix.keyboard }}
-        path: |
-          qmk_firmware/*.hex
-          qmk_firmware/*.uf2
-          qmk_firmware/*.bin
+      - name: Archive Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vial_firmware_${{ matrix.keyboard }}
+          path: |
+            qmk_firmware/*.hex
+            qmk_firmware/*.uf2
+            qmk_firmware/*.bin
+
+  # -------------------------------------------------------
+  # 3) タグ push 時にリリースを作成しファームウェアを添付
+  # -------------------------------------------------------
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: firmware
+          pattern: vial_firmware_*
+
+      - name: Collect firmware files
+        run: |
+          mkdir -p release
+          find firmware -type f \( -name '*.hex' -o -name '*.uf2' -o -name '*.bin' \) -exec cp {} release/ \;
+          ls -la release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release/*
