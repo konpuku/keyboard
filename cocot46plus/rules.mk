@@ -3,3 +3,5 @@ SRC += matrix.c
 
 POINTING_DEVICE_DRIVER = adns5050
 
+WS2812_DRIVER = vendor
+

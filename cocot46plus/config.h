@@ -28,4 +28,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define ADNS5050_CS_PIN           GP9
 
 #define POINTING_DEVICE_ROTATION_180
+
+/* I2C Configuration for OLED (RP2040) */
+#define I2C_DRIVER I2CD1
+#define I2C1_SDA_PIN GP2
+#define I2C1_SCL_PIN GP3
 #define OLED_FONT_H "keyboards/cocot46plus/glcdfont.c"
