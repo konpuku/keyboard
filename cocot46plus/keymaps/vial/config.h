@@ -1,0 +1,12 @@
+#pragma once
+
+/* Vial Config */
+#define VIAL_KEYBOARD_UID {0xA3, 0x7B, 0x2C, 0xD4, 0x8E, 0x15, 0xF6, 0x59}
+#define VIAL_UNLOCK_COMBO_ROWS { 0, 0 }
+#define VIAL_UNLOCK_COMBO_COLS { 0, 1 }
+
+#define VIAL_COMBO_ENTRIES 8
+#define DYNAMIC_KEYMAP_LAYER_COUNT 7
+#define NO_ACTION_ONESHOT
+#undef LOCKING_SUPPORT_ENABLE
+#undef LOCKING_RESYNC_ENABLE
