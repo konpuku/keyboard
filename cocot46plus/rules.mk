@@ -3,4 +3,3 @@ SRC += matrix.c
 
 POINTING_DEVICE_DRIVER = adns5050
 
-CONVERT_TO = promicro_rp2040

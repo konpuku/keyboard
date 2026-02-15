@@ -23,9 +23,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MATRIX_ROWS 10
 #define MATRIX_COLS 6
 
-#define ADNS5050_SCLK_PIN         B2
-#define ADNS5050_SDIO_PIN         B4
-#define ADNS5050_CS_PIN           B5
+#define ADNS5050_SCLK_PIN         GP14
+#define ADNS5050_SDIO_PIN         GP8
+#define ADNS5050_CS_PIN           GP9
 
 #define POINTING_DEVICE_ROTATION_180
 #define OLED_FONT_H "keyboards/cocot46plus/glcdfont.c"
