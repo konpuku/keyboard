@@ -2,14 +2,14 @@ name: Build Vial Firmware
 
 on:
   push:
+    branches:
+      - '**'
     paths:
       - '**.c'
       - '**.h'
       - '**.mk'
       - '**.json'
       - '.github/workflows/**'
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       keyboard:
@@ -55,33 +55,41 @@ jobs:
             kb="$(echo "$dir" | cut -d/ -f1)"
             all_keyboards+=("$kb")
           done
+          echo "All keyboards found: ${all_keyboards[*]}"
 
-          # タグ push またはリリース指定 → 全キーボードをビルド
-          if [[ "${{ github.ref_type }}" == "tag" ]] || [[ "${{ github.event.inputs.create_release }}" == "true" ]]; then
+          # リリース指定時 → 全キーボードをビルド
+          if [[ "${{ github.event.inputs.create_release }}" == "true" ]]; then
             keyboards=("${all_keyboards[@]}")
           # push イベント: 差分から変更キーボードを検出
           elif [[ "${{ github.event_name }}" == "push" ]]; then
-            changed_keyboards=()
-
-            # ワークフロー自体が変わった場合は全キーボードをビルド
-            workflow_changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- .github/workflows/ | wc -l)
-            if [[ "$workflow_changed" -gt 0 ]]; then
-              changed_keyboards=("${all_keyboards[@]}")
+            BEFORE="${{ github.event.before }}"
+            # 新規ブランチなど before が 0 の場合は全キーボードをビルド
+            if [[ "$BEFORE" == "0000000000000000000000000000000000000000" ]] || [[ -z "$BEFORE" ]]; then
+              echo "New branch detected, building all keyboards"
+              keyboards=("${all_keyboards[@]}")
             else
-              # 変更ファイルからキーボード名を抽出
-              for file in $(git diff --name-only ${{ github.event.before }} ${{ github.sha }}); do
-                kb="$(echo "$file" | cut -d/ -f1)"
-                for known in "${all_keyboards[@]}"; do
-                  if [[ "$kb" == "$known" ]]; then
-                    changed_keyboards+=("$kb")
-                    break
-                  fi
-                done
-              done
-            fi
+              changed_keyboards=()
 
-            # 重複を除去
-            keyboards=($(printf '%s\n' "${changed_keyboards[@]}" | sort -u))
+              # ワークフロー自体が変わった場合は全キーボードをビルド
+              workflow_changed=$(git diff --name-only "$BEFORE" "${{ github.sha }}" -- .github/workflows/ | wc -l)
+              if [[ "$workflow_changed" -gt 0 ]]; then
+                changed_keyboards=("${all_keyboards[@]}")
+              else
+                # 変更ファイルからキーボード名を抽出
+                for file in $(git diff --name-only "$BEFORE" "${{ github.sha }}"); do
+                  kb="$(echo "$file" | cut -d/ -f1)"
+                  for known in "${all_keyboards[@]}"; do
+                    if [[ "$kb" == "$known" ]]; then
+                      changed_keyboards+=("$kb")
+                      break
+                    fi
+                  done
+                done
+              fi
+
+              # 重複を除去
+              keyboards=($(printf '%s\n' "${changed_keyboards[@]}" | sort -u))
+            fi
           else
             # workflow_dispatch (keyboard 未指定) → 全キーボード
             keyboards=("${all_keyboards[@]}")
@@ -137,7 +145,10 @@ jobs:
 
       - name: Debug Directory Structure
         run: |
-          ls -F qmk_firmware/keyboards/${{ matrix.keyboard }}/ || true
+          echo "=== Keyboard files ==="
+          find qmk_firmware/keyboards/${{ matrix.keyboard }}/ -type f | sort
+          echo "=== Config ==="
+          cat qmk_firmware/keyboards/${{ matrix.keyboard }}/config.h || true
 
       - name: Build Firmware
         working-directory: qmk_firmware
@@ -155,12 +166,12 @@ jobs:
 
   # -------------------------------------------------------
   # 3) リリースを作成しファームウェアを添付
-  #    - タグ push 時に自動実行
   #    - workflow_dispatch で create_release=true 時に実行
+  #    - タグ push 時に自動実行
   # -------------------------------------------------------
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.create_release == 'true'
+    if: github.event.inputs.create_release == 'true' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
