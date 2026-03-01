@@ -150,6 +150,20 @@ jobs:
           echo "=== Config ==="
           cat qmk_firmware/keyboards/${{ matrix.keyboard }}/config.h || true
 
+      - name: Patch vial-qmk for Python 3.14 compatibility
+        run: |
+          # ast.Num was removed in Python 3.14; replace with ast.Constant
+          MATH_PY="qmk_firmware/lib/python/qmk/math.py"
+          if grep -q 'ast\.Num' "$MATH_PY" 2>/dev/null; then
+            sed -i \
+              -e 's/isinstance(node, ast\.Num)/isinstance(node, ast.Constant) and isinstance(node.value, (int, float))/' \
+              -e 's/return node\.n/return node.value/' \
+              "$MATH_PY"
+            echo "Patched $MATH_PY for Python 3.14 compatibility"
+          else
+            echo "No patch needed"
+          fi
+
       - name: Build Firmware
         working-directory: qmk_firmware
         run: |
