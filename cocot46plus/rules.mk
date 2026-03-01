@@ -1,3 +1,5 @@
+MCU = RP2040
+
 CUSTOM_MATRIX = lite
 SRC += matrix.c
 
