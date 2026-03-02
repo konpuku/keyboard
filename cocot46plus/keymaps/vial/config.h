@@ -1,12 +1,10 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 #pragma once
 
-/* Vial Config */
-#define VIAL_KEYBOARD_UID {0xA3, 0x7B, 0x2C, 0xD4, 0x8E, 0x15, 0xF6, 0x59}
-#define VIAL_UNLOCK_COMBO_ROWS { 0, 0 }
-#define VIAL_UNLOCK_COMBO_COLS { 0, 1 }
+#define VIAL_KEYBOARD_UID {0x4D, 0x5C, 0xCE, 0x1F, 0xB7, 0x02, 0xDC, 0x8F}
+#define VIAL_UNLOCK_COMBO_ROWS { 0, 7 }
+#define VIAL_UNLOCK_COMBO_COLS { 0, 0 }
 
-#define VIAL_COMBO_ENTRIES 8
-#define DYNAMIC_KEYMAP_LAYER_COUNT 7
-#define NO_ACTION_ONESHOT
-#undef LOCKING_SUPPORT_ENABLE
-#undef LOCKING_RESYNC_ENABLE
+#define POINTING_DEVICE_AUTO_MOUSE_ENABLE
+#define AUTO_MOUSE_DEFAULT_LAYER 3
