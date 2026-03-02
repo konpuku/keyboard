@@ -11,7 +11,7 @@
     "processor": "RP2040",
     "bootloader": "rp2040",
     "matrix_pins": {
-        "cols": ["GP29", "GP28", "GP27", "GP26", "GP22", "GP16"],
+        "cols": ["GP29", "GP28", "GP27", "GP26", "GP22", "GP20"],
         "rows": ["GP4", "GP5", "GP6", "GP7", "NO_PIN"]
     },
     "qmk": {
@@ -47,7 +47,7 @@
         ]
     },
     "ws2812": {
-        "pin": "GP10"
+        "pin": "GP21"
     },
     "rgblight": {
         "led_count": 12,

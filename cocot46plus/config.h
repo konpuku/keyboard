@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MATRIX_ROWS 10
 #define MATRIX_COLS 6
 
-#define ADNS5050_SCLK_PIN         GP14
+#define ADNS5050_SCLK_PIN         GP23
 #define ADNS5050_SDIO_PIN         GP8
 #define ADNS5050_CS_PIN           GP9
 
