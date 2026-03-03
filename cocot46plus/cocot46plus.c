@@ -50,10 +50,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 cocot_config_t cocot_config;
 uint16_t cpi_array[] = COCOT_CPI_OPTIONS;
 uint16_t scrl_div_array[] = COCOT_SCROLL_DIVIDERS;
-uint16_t angle_array[] = COCOT_ROTATION_ANGLE;
+int8_t angle_array[] = COCOT_ROTATION_ANGLE;
 #define CPI_OPTION_SIZE (sizeof(cpi_array) / sizeof(uint16_t))
 #define SCRL_DIV_SIZE (sizeof(scrl_div_array) / sizeof(uint16_t))
-#define ANGLE_SIZE (sizeof(angle_array) / sizeof(uint16_t))
+#define ANGLE_SIZE (sizeof(angle_array) / sizeof(int8_t))
 
 
 // Trackball State
@@ -252,17 +252,6 @@ void render_logo(void) {
 void oled_write_layer_state(void) {
 
     oled_write_P(PSTR(" "), false);
-    // int cpi = pointing_device_get_cpi();
-    int cpi = cpi_array[cocot_config.cpi_idx];
-    int scroll_div = scrl_div_array[cocot_config.scrl_div];
-    int angle = angle_array[cocot_config.rotation_angle];
-
-    char buf1[6];
-    char buf2[6];
-    char buf3[6];
-    snprintf(buf1, sizeof(buf1), "%4d", cpi);
-    snprintf(buf2, sizeof(buf2), "%2d", scroll_div);
-    snprintf(buf3, sizeof(buf3), "%3d", angle);
 
     switch (get_highest_layer(layer_state | default_layer_state)) {
         case 0:
@@ -296,12 +285,20 @@ void oled_write_layer_state(void) {
     } else{
         oled_write_P(PSTR("C"), false);
     }
+
+    char cpi[5];
+    char scroll_div[3];
+    char angle[4];
+    snprintf(cpi, 5, "%4d", cpi_array[cocot_config.cpi_idx]);
+    snprintf(scroll_div, 3, "%2d", scrl_div_array[cocot_config.scrl_div]);
+    snprintf(angle, 4, "%3d", angle_array[cocot_config.rotation_angle]);
+
     oled_write_P(PSTR("/"), false);
-    oled_write(buf1, false);
+    oled_write(cpi, false);
     oled_write_P(PSTR("/"), false);
-    oled_write(buf2, false);
+    oled_write(scroll_div, false);
     oled_write_P(PSTR("/"), false);
-    oled_write(buf3, false);
+    oled_write(angle, false);
 }
 
 #endif
