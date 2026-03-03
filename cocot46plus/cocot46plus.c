@@ -286,12 +286,12 @@ void oled_write_layer_state(void) {
         oled_write_P(PSTR("C"), false);
     }
 
-    char cpi[5];
-    char scroll_div[3];
-    char angle[4];
-    snprintf(cpi, 5, "%4d", cpi_array[cocot_config.cpi_idx]);
-    snprintf(scroll_div, 3, "%2d", scrl_div_array[cocot_config.scrl_div]);
-    snprintf(angle, 4, "%3d", angle_array[cocot_config.rotation_angle]);
+    char cpi[6];
+    char scroll_div[6];
+    char angle[5];
+    snprintf(cpi, sizeof(cpi), "%4d", cpi_array[cocot_config.cpi_idx]);
+    snprintf(scroll_div, sizeof(scroll_div), "%2d", scrl_div_array[cocot_config.scrl_div]);
+    snprintf(angle, sizeof(angle), "%3d", angle_array[cocot_config.rotation_angle]);
 
     oled_write_P(PSTR("/"), false);
     oled_write(cpi, false);
