@@ -257,12 +257,12 @@ void oled_write_layer_state(void) {
     int scroll_div = scrl_div_array[cocot_config.scrl_div];
     int angle = angle_array[cocot_config.rotation_angle];
 
-    char buf1[5];
-    char buf2[3];
-    char buf3[4];
-    snprintf(buf1, 5, "%4d", cpi);
-    snprintf(buf2, 3, "%2d", scroll_div);
-    snprintf(buf3, 4, "%3d", angle);
+    char buf1[6];
+    char buf2[6];
+    char buf3[6];
+    snprintf(buf1, sizeof(buf1), "%4d", cpi);
+    snprintf(buf2, sizeof(buf2), "%2d", scroll_div);
+    snprintf(buf3, sizeof(buf3), "%3d", angle);
 
     switch (get_highest_layer(layer_state | default_layer_state)) {
         case 0:
