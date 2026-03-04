@@ -25,12 +25,15 @@ typedef union {
         uint8_t cpi_idx;
         uint8_t scrl_div;
         uint8_t rotation_angle;
-        int8_t scrl_inv;
-        bool scrl_mode;
+        uint8_t scrl_inv : 1;
+        uint8_t auto_mouse : 1;
     };
 } cocot_config_t;
 
-// VIAL custom keycodes (QK_KB_0 ~ QK_KB_6)
+// runtime-only state (not persisted in EEPROM)
+extern bool cocot_scrl_mode;
+
+// VIAL custom keycodes (QK_KB_0 ~ QK_KB_7)
 #define CPI_SW   QK_KB_0
 #define SCRL_SW  QK_KB_1
 #define ROT_R15  QK_KB_2
@@ -38,6 +41,7 @@ typedef union {
 #define SCRL_MO  QK_KB_4
 #define SCRL_TO  QK_KB_5
 #define SCRL_IN  QK_KB_6
+#define AM_TOG   QK_KB_7
 
 extern cocot_config_t cocot_config;
 

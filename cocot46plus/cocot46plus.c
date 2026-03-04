@@ -46,8 +46,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #    define COCOT_ROTATION_DEFAULT 2
 #endif
 
+#ifndef COCOT_AUTO_MOUSE_MODE
+#    define COCOT_AUTO_MOUSE_MODE true
+#endif
+
 
 cocot_config_t cocot_config;
+bool cocot_scrl_mode = false;
 uint16_t cpi_array[] = COCOT_CPI_OPTIONS;
 uint16_t scrl_div_array[] = COCOT_SCROLL_DIVIDERS;
 int8_t angle_array[] = COCOT_ROTATION_ANGLE;
@@ -179,20 +184,22 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
     }
 
     if (keycode == SCRL_IN && record->event.pressed) {
-        cocot_config.scrl_inv = -cocot_config.scrl_inv;
+        cocot_config.scrl_inv ^= 1;
         eeconfig_update_kb(cocot_config.raw);
     }
 
     if (keycode == SCRL_TO && record->event.pressed) {
-        {
-            cocot_config.scrl_mode ^= 1;
-        }
+        cocot_scrl_mode ^= 1;
     }
 
     if (keycode == SCRL_MO) {
-        {
-            cocot_config.scrl_mode ^= 1;
-        }
+        cocot_scrl_mode ^= 1;
+    }
+
+    if (keycode == AM_TOG && record->event.pressed) {
+        cocot_config.auto_mouse ^= 1;
+        eeconfig_update_kb(cocot_config.raw);
+        set_auto_mouse_enable(cocot_config.auto_mouse);
     }
 
     return true;
@@ -203,7 +210,8 @@ void eeconfig_init_kb(void) {
     cocot_config.scrl_div = COCOT_SCROLL_DIV_DEFAULT;
     cocot_config.rotation_angle = COCOT_ROTATION_DEFAULT;
     cocot_config.scrl_inv = COCOT_SCROLL_INV_DEFAULT;
-    cocot_config.scrl_mode = false;
+    cocot_config.auto_mouse = COCOT_AUTO_MOUSE_MODE;
+    cocot_scrl_mode = false;
     eeconfig_update_kb(cocot_config.raw);
     eeconfig_init_user();
     adns5050_write_reg(0x22, 0b10000 | 0x80);
@@ -223,11 +231,11 @@ void matrix_init_kb(void) {
 
 
 bool cocot_get_scroll_mode(void) {
-    return cocot_config.scrl_mode;
+    return cocot_scrl_mode;
 }
 
 void cocot_set_scroll_mode(bool mode) {
-    cocot_config.scrl_mode = mode;
+    cocot_scrl_mode = mode;
 }
 
 
@@ -285,12 +293,22 @@ void oled_write_layer_state(void) {
     } else{
         oled_write_P(PSTR("C"), false);
     }
+    oled_write_P(PSTR("/"), false);
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    if (get_auto_mouse_enable()){
+        oled_write_P(PSTR("Y"), false);
+    } else{
+        oled_write_P(PSTR("N"), false);
+    }
+#else
+    oled_write_P(PSTR("-"), false);
+#endif
 
     char cpi[6];
     char scroll_div[6];
     char angle[5];
     snprintf(cpi, sizeof(cpi), "%4d", cpi_array[cocot_config.cpi_idx]);
-    snprintf(scroll_div, sizeof(scroll_div), "%2d", scrl_div_array[cocot_config.scrl_div]);
+    snprintf(scroll_div, sizeof(scroll_div), "%1d", scrl_div_array[cocot_config.scrl_div]);
     snprintf(angle, sizeof(angle), "%3d", angle_array[cocot_config.rotation_angle]);
 
     oled_write_P(PSTR("/"), false);
