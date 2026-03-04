@@ -69,7 +69,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
   [_TRACKBALL] = LAYOUT(
   //|-------------------------------------------------------|                                   |-------------------------------------------------------|
-      QK_BOOT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, RGB_TOG,                                       SCRL_TO,  CPI_SW, SCRL_SW, ROT_L15, ROT_R15, XXXXXXX,
+      QK_BOOT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, RGB_TOG,                                       SCRL_TO,  CPI_SW, SCRL_SW, ROT_L15, ROT_R15,  AM_TOG,
   //|-------------------------------------------------------|                                   |-------------------------------------------------------|
       XXXXXXX, XXXXXXX, RGB_VAI, RGB_SAI, RGB_HUI, RGB_MOD,                                       SCRL_MO, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
   //|-------------------------------------------------------|                                   |-------------------------------------------------------|
@@ -92,18 +92,30 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
 #endif
 
 layer_state_t layer_state_set_user(layer_state_t state) {
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+    switch (get_highest_layer(remove_auto_mouse_layer(state, true))) {
+#else
     switch (get_highest_layer(state)) {
+#endif
     case _LOWER:
         #ifdef RGBLIGHT_ENABLE
         rgblight_sethsv_range(HSV_BLUE, 0, 2);
         #endif
         cocot_set_scroll_mode(true);
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+        state = remove_auto_mouse_layer(state, false);
+        set_auto_mouse_enable(false);
+#endif
         break;
     case _RAISE:
         #ifdef RGBLIGHT_ENABLE
         rgblight_sethsv_range(HSV_RED, 0, 2);
         #endif
         cocot_set_scroll_mode(true);
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+        state = remove_auto_mouse_layer(state, false);
+        set_auto_mouse_enable(false);
+#endif
         break;
     case _TRACKBALL:
         #ifdef RGBLIGHT_ENABLE
@@ -116,6 +128,9 @@ layer_state_t layer_state_set_user(layer_state_t state) {
         rgblight_sethsv_range( 0, 0, 0, 0, 2);
         #endif
         cocot_set_scroll_mode(false);
+#ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
+        set_auto_mouse_enable(cocot_config.auto_mouse);
+#endif
         break;
     }
     #ifdef RGBLIGHT_ENABLE
@@ -135,7 +150,7 @@ bool oled_task_user(void) {
 
 #ifdef POINTING_DEVICE_AUTO_MOUSE_ENABLE
 void pointing_device_init_user(void) {
-    set_auto_mouse_enable(true);
+    set_auto_mouse_enable(cocot_config.auto_mouse);
 }
 
 bool is_mouse_record_user(uint16_t keycode, keyrecord_t* record) {

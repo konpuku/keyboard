@@ -36,6 +36,11 @@
             "name": "Scroll Inversion",
             "shortName": "SCRL_IN",
             "title": "Invert scroll direction."
+        },
+        {
+            "name": "Auto Mouse Toggle",
+            "shortName": "AM_TOG",
+            "title": "Toggle automatic mouse layer switching on/off."
         }
     ],
     "layouts": {
